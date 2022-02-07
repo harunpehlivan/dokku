@@ -18,12 +18,11 @@ def CDATA(text=None):
 
 def _serialize_xml(write, elem, qnames, namespaces,short_empty_elements, **kwargs):
 
-    if elem.tag == '![CDATA[':
-        write("\n<{}{}]]>\n".format(elem.tag, elem.text))
-        if elem.tail:
-            write(ElementTree._escape_cdata(elem.tail))
-    else:
+    if elem.tag != '![CDATA[':
         return ElementTree._original_serialize_xml(write, elem, qnames, namespaces,short_empty_elements, **kwargs)
+    write("\n<{}{}]]>\n".format(elem.tag, elem.text))
+    if elem.tail:
+        write(ElementTree._escape_cdata(elem.tail))
 
 
 ElementTree._original_serialize_xml = ElementTree._serialize_xml
@@ -72,19 +71,17 @@ def process_lines(lines):
             line_no = line.split(' ')[3]
             new_issues = []
             code = None
-        elif code is None and len(new_issues) == 0:
+        elif code is None and not new_issues:
             code = line
-        else:
-            match = RE_VIOLATION.match(line.strip())
-            if not match:
-                print('Error: Issue parsing line "{0}"'.format(line.strip()))
-            else:
-                new_issues.append({
-                    'shellcheck_id': match.group(1),
-                    'message': match.group(2),
-                    'original_message': line
-                })
+        elif match := RE_VIOLATION.match(line.strip()):
+            new_issues.append({
+                'shellcheck_id': match.group(1),
+                'message': match.group(2),
+                'original_message': line
+            })
 
+        else:
+            print('Error: Issue parsing line "{0}"'.format(line.strip()))
         previous_line = line
 
     return files
@@ -96,7 +93,7 @@ def output_junit(files, args):
     for file, data in files.items():
         for line, issue_data in data.items():
             code = issue_data.get('code')
-            for issue in issue_data.get('issues', []):
+            for _ in issue_data.get('issues', []):
                 failures += 1
 
     tests = 0
@@ -126,8 +123,7 @@ def output_junit(files, args):
             lines = f.readlines()
             for i in range(len(lines)):
                 file = lines[i].rstrip().replace('./', '')
-                data = files.get(file, None)
-                if data:
+                if data := files.get(file, None):
                     for line, issue_data in data.items():
                         code = issue_data.get('code')
                         for issue in issue_data.get('issues', []):

@@ -4,9 +4,7 @@ environment = os.getenv('ENVIRONMENT')
 
 if environment == 'dev':
     from .dev import *
-elif environment == 'staging':
-    from .staging import *
-elif environment == 'production':
+elif environment in ['staging', 'production']:
     from .staging import *
 else:
     raise Exception("Invalid environment")
