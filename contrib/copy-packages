@@ -29,17 +29,14 @@ def main():
     base = requests.get('https://packagecloud.io/api/v1/repos/dokku/dokku/packages/deb/ubuntu/bionic.json',
                         auth=auth)
     data = base.json()
-    urls = []
-    for package in data:
-        urls.append(package['versions_url'])
-
+    urls = [package['versions_url'] for package in data]
     download_urls = {}
     for url in urls:
         base = requests.get('https://packagecloud.io{0}'.format(url),
                             auth=auth)
         data = base.json()
         for version in data:
-            download_urls['downloads/' + version['filename']] = version['download_url']
+            download_urls[f'downloads/{version["filename"]}'] = version['download_url']
 
     for filename, download_url in download_urls.items():
         print("downloading {0}".format(filename))
